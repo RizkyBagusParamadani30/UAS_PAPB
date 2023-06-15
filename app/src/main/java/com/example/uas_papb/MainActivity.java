@@ -4,6 +4,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -36,8 +38,14 @@ public class MainActivity extends AppCompatActivity {
         listToDo = new ArrayList<>();
         recyclerAdapter = new RecyclerAdapter(listToDo);
         recyclerView.setAdapter(recyclerAdapter);
-
-        getData();
+        // Start the thread
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                getData();
+            }
+        });
+        thread.start();
     }
 
     private void getData() {
@@ -57,7 +65,14 @@ public class MainActivity extends AppCompatActivity {
                                 listToDo.add(toDoItem);
                             }
 
-                            recyclerAdapter.notifyDataSetChanged();
+                            // Update the UI on the main thread
+                            Handler handler = new Handler(Looper.getMainLooper());
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    recyclerAdapter.notifyDataSetChanged();
+                                }
+                            });
                         } catch (JSONException e) {
                             throw new RuntimeException(e);
                         }
@@ -66,7 +81,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onErrorResponse(VolleyError error) {
                 String errorMessage = error.getMessage();
-                Toast.makeText(MainActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                // Show toast on the main thread
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
 
